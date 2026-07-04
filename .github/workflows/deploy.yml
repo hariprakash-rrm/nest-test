@@ -1,0 +1,11 @@
+nest-test/
+│
+├── .github/
+│   └── workflows/
+│       └── deploy.yml
+├── Dockerfile
+├── .dockerignore
+├── backend/
+│   ├── package.json
+│   ├── src/
+│   └── ...

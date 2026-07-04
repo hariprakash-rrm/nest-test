@@ -1,16 +1,56 @@
-FROM node:22-alpine
-WORKDIR /backend/app
+name: NestJS CI/CD
 
-COPY backend/package*.json ./
+on:
+  push:
+    branches:
+      - main
 
-RUN npm install
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
 
-COPY backend/ .
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
 
-RUN npm run build
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
 
-EXPOSE 3000
+      - name: Install Dependencies
+        working-directory: backend
+        run: npm install
 
-CMD ["node","dist/main"] 
+      - name: Build NestJS
+        working-directory: backend
+        run: npm run build
 
-# CMD ["npm","run","start:dev"]
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Build Docker Image
+        run: docker build -t haripraksh/nest-api:latest .
+
+      - name: Push Docker Image
+        run: docker push haripraksh/nest-api:latest
+
+      - name: Deploy to EC2
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            sudo docker pull haripraksh/nest-api:latest
+            sudo docker stop nest-api || true
+            sudo docker rm nest-api || true
+            sudo docker run -d \
+              --name nest-api \
+              --restart unless-stopped \
+              --env-file /home/ubuntu/.env \
+              -p 3000:3000 \
+              haripraksh/nest-api:latest
