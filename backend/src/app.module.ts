@@ -9,7 +9,7 @@ import { MongooseModule } from '@nestjs/mongoose';
     ConfigModule.forRoot({
       isGlobal: true
     }),
-    MongooseModule.forRootAsync({
+    MongooseModule.forRootAsync({ 
       imports: [ConfigModule],
       inject: [ConfigService],
       useFactory: (configService: ConfigService) => ({
